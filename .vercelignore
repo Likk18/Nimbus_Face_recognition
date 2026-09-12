@@ -1,0 +1,12 @@
+.git
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+.next
+node_modules
+frontend/.next
+frontend/node_modules
+backend/outputs/*.png
+backend/server.log
+backend/server.err.log
