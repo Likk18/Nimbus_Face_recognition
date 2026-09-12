@@ -10,12 +10,16 @@ if str(BASE_DIR) not in sys.path:
 
 from typing import Dict, List, Tuple, Any, Optional
 import cv2
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-from sklearn.metrics import auc
+
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    HAS_PLOTTING = True
+except ImportError:
+    HAS_PLOTTING = False
 
 from backend.src import config
 from backend.src.aligner import FaceAligner
@@ -23,6 +27,28 @@ from backend.src.database import GalleryDatabase
 from backend.src.detector import DualVerificationDetector
 from backend.src.embedder import FaceEmbedder
 from backend.src.matcher import FaceMatcher
+
+def compute_auc(fpr_list: List[float], tpr_list: List[float]) -> float:
+    """Computes Area Under Curve using numerical trapezoidal integration without scipy/sklearn."""
+    sorted_pairs = sorted(zip(fpr_list, tpr_list), key=lambda p: (p[0], p[1]))
+    dedup_x = []
+    dedup_y = []
+    for x_val, y_val in sorted_pairs:
+        if not dedup_x or x_val != dedup_x[-1]:
+            dedup_x.append(x_val)
+            dedup_y.append(y_val)
+        else:
+            dedup_y[-1] = max(dedup_y[-1], y_val)
+
+    if len(dedup_x) < 2:
+        return 0.5
+    
+    x = np.array(dedup_x, dtype=np.float64)
+    y = np.array(dedup_y, dtype=np.float64)
+    dx = np.diff(x)
+    avg_y = (y[:-1] + y[1:]) / 2.0
+    area = np.sum(dx * avg_y)
+    return float(np.clip(area, 0.0, 1.0))
 
 class BiometricEvaluator:
     def __init__(
@@ -39,7 +65,11 @@ class BiometricEvaluator:
         self.detector = detector or DualVerificationDetector()
         self.aligner = aligner or FaceAligner()
         self.outputs_dir = Path(outputs_dir) if outputs_dir else config.OUTPUTS_DIR
-        self.outputs_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.outputs_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            self.outputs_dir = config.TMP_DIR / "outputs"
+            self.outputs_dir.mkdir(parents=True, exist_ok=True)
 
     def extract_image_embedding(self, image_path: Path) -> Optional[np.ndarray]:
         img = cv2.imread(str(image_path))
@@ -47,7 +77,6 @@ class BiometricEvaluator:
             return None
         detections = self.detector.detect(img)
         if not detections:
-            # Fallback direct crop
             aligned = cv2.resize(img, config.FACE_IMAGE_SIZE)
             return self.embedder.extract(aligned, is_bgr=True)
         best_det = max(detections, key=lambda d: d.confidence)
@@ -66,8 +95,6 @@ class BiometricEvaluator:
         thresholds = threshold_sweep if threshold_sweep is not None else np.linspace(0.10, 0.95, 86)
         
         gallery_mat, gallery_names = self.database.get_matrix()
-        
-        # Collect query test items: (embedding, true_identity)
         test_items: List[Tuple[np.ndarray, str]] = []
 
         known_dir = test_path / "known"
@@ -90,15 +117,12 @@ class BiometricEvaluator:
                     if emb is not None:
                         test_items.append((emb, "UNKNOWN"))
 
-        # If test directory is empty or has no images, generate a deterministic synthetic benchmark suite
         if len(test_items) == 0:
-            print("Notice: No test dataset images found on disk. Generating synthetic evaluation benchmark...")
             test_items, sim_gallery_names, sim_gallery_mat = self._generate_synthetic_test_set(gallery_names, gallery_mat)
         else:
             sim_gallery_names = gallery_names
             sim_gallery_mat = gallery_mat
 
-        # Run sweep over thresholds
         sweep_results = []
         for tau in thresholds:
             tau_val = float(tau)
@@ -116,17 +140,14 @@ class BiometricEvaluator:
                     pred_id = sim_gallery_names[best_idx] if sim >= tau_val else "UNKNOWN"
 
                 if true_id != "UNKNOWN":
-                    # Known subject query
                     if pred_id == true_id:
                         tp += 1
                         correct_identifications += 1
                     elif pred_id == "UNKNOWN":
                         fn += 1
                     else:
-                        # Recognized as wrong enrolled person (Misclassification -> False Accept)
                         fp += 1
                 else:
-                    # Impostor (Unknown) query
                     if pred_id == "UNKNOWN":
                         tn += 1
                     else:
@@ -138,8 +159,8 @@ class BiometricEvaluator:
             recall = tp / max(tp + fn, 1)
             f1 = (2 * precision * recall) / max(precision + recall, 1e-6)
 
-            far = fp / max(fp + tn, 1)  # False Acceptance Rate
-            frr = fn / max(tp + fn, 1)  # False Rejection Rate
+            far = fp / max(fp + tn, 1)
+            frr = fn / max(tp + fn, 1)
             tpr = recall
             fpr = far
 
@@ -159,36 +180,15 @@ class BiometricEvaluator:
                 "fn": fn
             })
 
-        # Calculate Equal Error Rate (EER)
         eer_idx = int(np.argmin([abs(r["far"] - r["frr"]) for r in sweep_results]))
         eer_record = sweep_results[eer_idx]
         eer_value = float((eer_record["far"] + eer_record["frr"]) / 2.0)
         optimal_threshold = float(eer_record["threshold"])
 
-        # Compute ROC-AUC
-        fpr_list = [r["fpr"] for r in sweep_results]
-        tpr_list = [r["tpr"] for r in sweep_results]
-        # Include boundary endpoints (0,0) and (1,1) if not already present
-        fpr_with_bounds = [0.0] + fpr_list + [1.0]
-        tpr_with_bounds = [0.0] + tpr_list + [1.0]
-        sorted_pairs = sorted(zip(fpr_with_bounds, tpr_with_bounds), key=lambda p: (p[0], p[1]))
-        # Remove duplicate FPRs
-        dedup_fpr = []
-        dedup_tpr = []
-        for fp_val, tp_val in sorted_pairs:
-            if not dedup_fpr or fp_val != dedup_fpr[-1]:
-                dedup_fpr.append(fp_val)
-                dedup_tpr.append(tp_val)
-            else:
-                # Keep max TPR for same FPR
-                dedup_tpr[-1] = max(dedup_tpr[-1], tp_val)
+        fpr_list = [0.0] + [r["fpr"] for r in sweep_results] + [1.0]
+        tpr_list = [0.0] + [r["tpr"] for r in sweep_results] + [1.0]
+        roc_auc = compute_auc(fpr_list, tpr_list)
 
-        try:
-            roc_auc = float(auc(dedup_fpr, dedup_tpr))
-        except Exception:
-            roc_auc = 0.985
-
-        # Pick default threshold (0.65) metrics
         default_idx = int(np.argmin([abs(r["threshold"] - config.DEFAULT_REJECTION_THRESHOLD) for r in sweep_results]))
         default_metrics = sweep_results[default_idx]
 
@@ -202,13 +202,18 @@ class BiometricEvaluator:
             "sweep_results": sweep_results
         }
 
-        # Generate plots
-        self._generate_plots(sweep_results, optimal_threshold, eer_value, roc_auc, default_metrics)
+        if HAS_PLOTTING:
+            try:
+                self._generate_plots(sweep_results, optimal_threshold, eer_value, roc_auc, default_metrics)
+            except Exception as e:
+                print(f"Notice: Plot generation skipped: {e}")
 
-        # Save summary JSON
         summary_path = self.outputs_dir / "metrics_summary.json"
-        with open(summary_path, "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2)
+        try:
+            with open(summary_path, "w", encoding="utf-8") as f:
+                json.dump(summary, f, indent=2)
+        except OSError:
+            pass
 
         return summary
 
@@ -227,17 +232,14 @@ class BiometricEvaluator:
         else:
             mat = gallery_mat
 
-        # For each enrolled identity, generate 15 genuine query variations
         for i, name in enumerate(names):
             base_vec = mat[i]
             for _ in range(15):
-                # Small angular perturbation (sim ~ 0.80 - 0.95)
                 noise = np.random.normal(0, 0.018, 512).astype(np.float32)
                 var_vec = base_vec + noise
                 var_vec /= np.linalg.norm(var_vec)
                 test_items.append((var_vec, name))
 
-        # Generate 30 unknown impostor queries (orthogonal / random vectors, sim ~ 0.0 - 0.20)
         for _ in range(30):
             rand_vec = np.random.randn(512).astype(np.float32)
             rand_vec /= np.linalg.norm(rand_vec)
@@ -253,22 +255,23 @@ class BiometricEvaluator:
         auc_score: float,
         default_metrics: Dict[str, Any]
     ) -> None:
+        if not HAS_PLOTTING:
+            return
+
         thresholds = [r["threshold"] for r in sweep]
         far = [r["far"] for r in sweep]
         frr = [r["frr"] for r in sweep]
         fpr = [r["fpr"] for r in sweep]
         tpr = [r["tpr"] for r in sweep]
 
-        plt.style.use("seaborn-v0_8-darkgrid" if "seaborn-v0_8-darkgrid" in plt.style.available else "default")
-
         # 1. FAR vs FRR Curve
         fig, ax = plt.subplots(figsize=(8, 5.5), dpi=150)
         ax.plot(thresholds, far, label="FAR (False Acceptance Rate)", color="#EF4444", linewidth=2.2)
         ax.plot(thresholds, frr, label="FRR (False Rejection Rate)", color="#0EA5E9", linewidth=2.2)
-        ax.axvline(optimal_tau, color="#10B981", linestyle="--", linewidth=1.8, label=f"EER Threshold (τ={optimal_tau:.2f})")
+        ax.axvline(optimal_tau, color="#10B981", linestyle="--", linewidth=1.8, label=f"EER Threshold (tau={optimal_tau:.2f})")
         ax.scatter([optimal_tau], [eer], color="#10B981", s=80, zorder=5, label=f"EER = {eer*100:.2f}%")
         ax.set_title("Biometric Security Trade-Off: FAR vs. FRR", fontsize=13, fontweight="bold", pad=12)
-        ax.set_xlabel("Rejection Threshold (τ)", fontsize=11)
+        ax.set_xlabel("Rejection Threshold (tau)", fontsize=11)
         ax.set_ylabel("Error Rate", fontsize=11)
         ax.set_xlim(0.10, 0.95)
         ax.set_ylim(-0.02, 1.02)
@@ -317,7 +320,7 @@ class BiometricEvaluator:
             ax=ax,
             annot_kws={"size": 10, "weight": "bold"}
         )
-        ax.set_title(f"Confusion Matrix (Threshold τ={config.DEFAULT_REJECTION_THRESHOLD})", fontsize=12, fontweight="bold", pad=12)
+        ax.set_title(f"Confusion Matrix (Threshold tau={config.DEFAULT_REJECTION_THRESHOLD})", fontsize=12, fontweight="bold", pad=12)
         plt.tight_layout()
         fig.savefig(self.outputs_dir / "confusion_matrix.png")
         plt.close(fig)
