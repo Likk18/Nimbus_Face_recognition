@@ -2,14 +2,20 @@ import os
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Tuple, Dict, Any, Optional
 import cv2
 import numpy as np
-import torch
-from facenet_pytorch import MTCNN
 from PIL import Image
 
 from backend.src import config
+
+try:
+    from facenet_pytorch import MTCNN
+    import torch
+    HAS_MTCNN = True
+except ImportError:
+    HAS_MTCNN = False
 
 @dataclass
 class FaceDetection:
@@ -51,16 +57,21 @@ def compute_iou(box1: np.ndarray, box2: np.ndarray) -> float:
 class MTCNNDetector:
     def __init__(self, device: str = config.DEVICE):
         self.device = device
-        self.mtcnn = MTCNN(
-            keep_all=True,
-            device=self.device,
-            min_face_size=config.MTCNN_MIN_FACE_SIZE,
-            thresholds=[0.6, 0.7, config.MTCNN_CONF_THRESHOLD],
-            post_process=False
-        )
+        self.mtcnn = None
+        if HAS_MTCNN:
+            try:
+                self.mtcnn = MTCNN(
+                    keep_all=True,
+                    device=self.device,
+                    min_face_size=config.MTCNN_MIN_FACE_SIZE,
+                    thresholds=[0.6, 0.7, config.MTCNN_CONF_THRESHOLD],
+                    post_process=False
+                )
+            except Exception as e:
+                print(f"Notice: MTCNN initialization skipped: {e}")
 
     def detect(self, image_bgr: np.ndarray) -> List[FaceDetection]:
-        if image_bgr is None or image_bgr.size == 0:
+        if not HAS_MTCNN or self.mtcnn is None or image_bgr is None or image_bgr.size == 0:
             return []
         
         image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)

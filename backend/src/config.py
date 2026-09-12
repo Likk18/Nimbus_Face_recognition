@@ -44,6 +44,12 @@ if IS_VERCEL and not YUNET_MODEL_PATH.exists():
     YUNET_MODEL_PATH = TMP_DIR / "models" / YUNET_MODEL_FILENAME
 YUNET_MODEL_URL = "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
 
+FACENET_ONNX_FILENAME = "facenet_vggface2.onnx"
+FACENET_ONNX_PATH = MODELS_DIR / FACENET_ONNX_FILENAME
+if IS_VERCEL and not FACENET_ONNX_PATH.exists():
+    FACENET_ONNX_PATH = TMP_DIR / "models" / FACENET_ONNX_FILENAME
+FACENET_ONNX_URL = "https://github.com/Likk18/Nimbus_Face_recognition/raw/master/backend/models/facenet_vggface2.onnx"
+
 def ensure_directories():
     for directory in [DATA_DIR, GALLERY_DIR, RAW_ENROLLMENT_DIR, TEST_DATASET_DIR, OUTPUTS_DIR, MODELS_DIR]:
         try:
