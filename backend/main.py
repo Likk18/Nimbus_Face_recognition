@@ -15,6 +15,7 @@ from backend.src import config
 from backend.src.database import GalleryDatabase
 from backend.src.pipeline import InferencePipeline
 from backend.evaluate import BiometricEvaluator
+from backend.server import app
 
 def handle_enroll(args):
     pipeline = InferencePipeline()
