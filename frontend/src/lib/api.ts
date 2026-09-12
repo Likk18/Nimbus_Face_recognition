@@ -5,7 +5,14 @@ import {
   SystemHealth,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+function getApiBase(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl || !envUrl.trim()) return "/api";
+  const trimmed = envUrl.trim().replace(/\/+$/, "");
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+const API_BASE = getApiBase();
 
 export async function fetchHealth(): Promise<SystemHealth> {
   const res = await fetch(`${API_BASE}/health`);

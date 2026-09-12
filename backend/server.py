@@ -28,11 +28,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for Next.js and frontend dev servers
+allowed_origins_env = os.environ.get("ALLOWED_ORIGINS", "*")
+allowed_origins = [orig.strip() for orig in allowed_origins_env.split(",") if orig.strip()] or ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins if "*" not in allowed_origins else ["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -44,6 +46,23 @@ evaluator = BiometricEvaluator(database=pipeline.database)
 class ImportGalleryRequest(BaseModel):
     version: Optional[str] = "1.0"
     profiles: List[Dict[str, Any]]
+
+@app.get("/")
+def root():
+    return {
+        "status": "online",
+        "service": "Nimbus Face Recognition API",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": "/health",
+            "api_health": "/api/health",
+            "docs": "/docs"
+        }
+    }
+
+@app.get("/health")
+def root_health():
+    return {"status": "healthy"}
 
 @app.get("/api/health")
 def get_health():
@@ -143,4 +162,5 @@ def get_output_file(filename: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.server:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("backend.server:app", host="0.0.0.0", port=port, reload=False)

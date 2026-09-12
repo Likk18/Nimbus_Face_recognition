@@ -1,11 +1,16 @@
 import os
 import tempfile
 from pathlib import Path
-import torch
+
+try:
+    import torch
+    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+except ImportError:
+    torch = None
+    DEVICE = "cpu"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Check if running in a serverless environment (e.g., Vercel / AWS Lambda)
 IS_VERCEL = "VERCEL" in os.environ or "AWS_LAMBDA_FUNCTION_NAME" in os.environ
 
 DATA_DIR = BASE_DIR / "data"
@@ -20,8 +25,6 @@ MODELS_DIR = BASE_DIR / "models"
 TMP_DIR = Path(tempfile.gettempdir()) / "nimbus"
 if IS_VERCEL:
     OUTPUTS_DIR = TMP_DIR / "outputs"
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 FACE_IMAGE_SIZE = (160, 160)
 EMBEDDING_DIM = 512

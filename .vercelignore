@@ -7,6 +7,6 @@ __pycache__
 node_modules
 frontend/.next
 frontend/node_modules
-backend/outputs/*.png
-backend/server.log
-backend/server.err.log
+backend/
+Dockerfile
+render.yaml
