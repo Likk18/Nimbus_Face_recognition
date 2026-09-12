@@ -15,6 +15,7 @@ import {
   Compass,
   Trash2,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { identifyImage, enrollSubject } from "../lib/api";
 import { DetectedFace, IdentifyResponse } from "../lib/types";
@@ -96,7 +97,6 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
       startCamera();
     } else {
       stopCamera();
-      // Clean up blob URLs
       capturedShots.forEach((shot) => URL.revokeObjectURL(shot.previewUrl));
       setCapturedShots([]);
       setCurrentResponse(null);
@@ -146,7 +146,7 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
         setDetectedFace(null);
       }
     } catch {
-      // Background analysis error ignored to avoid UI jitter
+      // background loop error ignored
     } finally {
       setIsAnalyzing(false);
     }
@@ -199,7 +199,7 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
       const bh = y2 - y1;
 
       const strokeColor = "#38BDF8"; // Cyan HUD color
-      const cornerLen = Math.max(12, Math.min(bw, bh) * 0.22);
+      const cornerLen = Math.max(14, Math.min(bw, bh) * 0.24);
       const lineWidth = 2.5;
 
       ctx.lineWidth = lineWidth;
@@ -207,28 +207,24 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
       ctx.lineCap = "square";
 
       // 4-Corner Viewfinder Reticles
-      // Top-Left
       ctx.beginPath();
       ctx.moveTo(x1, y1 + cornerLen);
       ctx.lineTo(x1, y1);
       ctx.lineTo(x1 + cornerLen, y1);
       ctx.stroke();
 
-      // Top-Right
       ctx.beginPath();
       ctx.moveTo(x2 - cornerLen, y1);
       ctx.lineTo(x2, y1);
       ctx.lineTo(x2, y1 + cornerLen);
       ctx.stroke();
 
-      // Bottom-Left
       ctx.beginPath();
       ctx.moveTo(x1, y2 - cornerLen);
       ctx.lineTo(x1, y2);
       ctx.lineTo(x1 + cornerLen, y2);
       ctx.stroke();
 
-      // Bottom-Right
       ctx.beginPath();
       ctx.moveTo(x2 - cornerLen, y2);
       ctx.lineTo(x2, y2);
@@ -248,18 +244,18 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
       // Target Label Tag
       const sourceLabel = face.detection_source ? face.detection_source.toUpperCase() : "TARGET LOCK";
       const tiltText = `${face.rotation_angle.toFixed(1)}°`;
-      const labelText = `[${sourceLabel}] TILT: ${tiltText}`;
+      const labelText = `[${sourceLabel}] POSE: ${tiltText}`;
 
       ctx.font = "bold 11px 'JetBrains Mono', monospace";
       const textMetrics = ctx.measureText(labelText);
-      const bgW = textMetrics.width + 12;
-      const bgH = 18;
+      const bgW = textMetrics.width + 14;
+      const bgH = 20;
 
       ctx.fillStyle = strokeColor;
       ctx.fillRect(x1, Math.max(0, y1 - bgH - 4), bgW, bgH);
 
       ctx.fillStyle = "#0F172A";
-      ctx.fillText(labelText, x1 + 6, Math.max(12, y1 - 9));
+      ctx.fillText(labelText, x1 + 7, Math.max(13, y1 - 9));
     });
   }, [currentResponse]);
 
@@ -337,20 +333,24 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
   const isMatch = detectedFace?.is_recognized ?? false;
   const matchName = detectedFace?.predicted_name ?? "NONE";
   const matchSimilarity = detectedFace ? (detectedFace.similarity_score * 100).toFixed(1) : "0.0";
+  const latency = currentResponse?.latency_ms ?? null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-surface border border-slate-700 rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="glass-panel border border-slate-700/80 rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-surface-subtle">
-          <div className="flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-slate-100">
-            <div className="w-7 h-7 rounded bg-accent/15 border border-accent/30 flex items-center justify-center text-accent">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-gradient-to-r from-slate-900/90 via-slate-950 to-indigo-950/40">
+          <div className="flex items-center gap-3 text-sm font-bold uppercase tracking-wider text-slate-100">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/30 to-indigo-500/30 border border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-glow-cyan">
               <Camera className="w-4 h-4" />
             </div>
-            <span>Live Optical Biometric Enrollment</span>
-            {currentResponse && (
-              <span className="ml-2 px-2 py-0.5 text-xs font-mono rounded bg-slate-900 text-slate-300 border border-slate-700">
-                {currentResponse.latency_ms} ms
+            <span className="bg-gradient-to-r from-white via-cyan-100 to-indigo-200 bg-clip-text text-transparent">
+              Live Optical Biometric Enrollment
+            </span>
+            {latency !== null && (
+              <span className="ml-2 px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 flex items-center gap-1">
+                <Zap className="w-3 h-3 text-cyan-400" />
+                {latency} ms
               </span>
             )}
           </div>
@@ -361,7 +361,7 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
               onClose();
             }}
             disabled={isEnrolling}
-            className="p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-md transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-lg transition-colors"
             title="Close camera pop-up"
           >
             <X className="w-5 h-5" />
@@ -373,7 +373,7 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
           {/* Left Column (7 cols): Camera Viewfinder */}
           <div className="lg:col-span-7 bg-black p-4 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-border gap-4 min-h-[380px]">
             {/* Viewfinder Window */}
-            <div className="relative flex-1 bg-slate-950 rounded-lg overflow-hidden flex items-center justify-center border border-slate-800 min-h-[300px]">
+            <div className="relative flex-1 bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center border border-slate-800 min-h-[300px]">
               <video
                 ref={videoRef}
                 playsInline
@@ -387,32 +387,32 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
 
               {/* Status HUD Header Overlay */}
               <div className="absolute top-3 left-3 flex items-center gap-2 pointer-events-none">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-black/70 backdrop-blur border border-slate-700 text-[11px] font-mono text-emerald-400 font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur border border-slate-700 text-[11px] font-mono text-emerald-400 font-bold shadow-lg">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  LIVE STREAM
+                  OPTICAL STREAM
                 </span>
                 {detectedFace ? (
-                  <span className="px-2 py-1 rounded bg-cyan-950/80 backdrop-blur border border-cyan-700 text-[11px] font-mono text-cyan-300 font-semibold">
+                  <span className="px-3 py-1 rounded-full bg-cyan-950/85 backdrop-blur border border-cyan-600 text-[11px] font-mono text-cyan-300 font-bold shadow-glow-cyan">
                     FACE LOCK ACQUIRED
                   </span>
                 ) : (
-                  <span className="px-2 py-1 rounded bg-slate-900/80 backdrop-blur border border-slate-700 text-[11px] font-mono text-slate-400">
-                    SEARCHING TARGET...
+                  <span className="px-3 py-1 rounded-full bg-slate-900/85 backdrop-blur border border-slate-700 text-[11px] font-mono text-slate-400">
+                    SCANNING TARGET...
                   </span>
                 )}
               </div>
 
               {/* Center Target Aim Crosshairs */}
               <div className="absolute inset-0 pointer-events-none opacity-25 flex items-center justify-center">
-                <div className="w-16 h-16 border border-dashed border-slate-300 rounded-full" />
+                <div className="w-20 h-20 border border-dashed border-cyan-400 rounded-full" />
               </div>
             </div>
 
             {/* Snap Shot Trigger Bar */}
-            <div className="flex items-center justify-between gap-3 bg-surface-subtle p-3 rounded-lg border border-border">
+            <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-3.5 rounded-xl border border-border">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono text-slate-300">
-                  Ready Shots: <strong className="text-accent font-bold">{capturedShots.length}</strong>
+                  Ready Centroid Shots: <strong className="text-cyan-400 font-bold text-sm">{capturedShots.length}</strong>
                 </span>
               </div>
 
@@ -420,38 +420,40 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
                 type="button"
                 onClick={handleSnapShot}
                 disabled={!isStreaming || isEnrolling}
-                className="px-5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
+                className="px-6 py-2.5 bg-gradient-to-r from-cyan-600 via-sky-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-extrabold rounded-xl shadow-glow-cyan flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-40"
               >
-                <Camera className="w-4 h-4" /> Snap Shot
+                <Camera className="w-4 h-4" /> Snap Facial Shot
               </button>
             </div>
           </div>
 
           {/* Right Column (5 cols): Live Biometric Telemetry & Enrollment Actions */}
-          <div className="lg:col-span-5 p-5 flex flex-col justify-between gap-4 bg-surface">
+          <div className="lg:col-span-5 p-5 flex flex-col justify-between gap-4 bg-slate-950/60">
             <div className="flex flex-col gap-4">
               {/* Telemetry Title */}
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-border pb-2.5">
-                <Cpu className="w-4 h-4 text-accent" />
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-200 border-b border-border pb-2.5">
+                <div className="w-5 h-5 rounded bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  <Cpu className="w-3.5 h-3.5" />
+                </div>
                 <span>Live Biometric Metrics</span>
               </div>
 
-              {/* Dual Detector Gauges */}
-              <div className="space-y-3 bg-slate-900/90 p-3.5 rounded-lg border border-slate-800">
+              {/* Dual Detector Gauges with Rich Contrasting Colors */}
+              <div className="space-y-3 bg-gradient-to-b from-slate-900/95 to-slate-950 p-4 rounded-xl border border-slate-800 shadow-md">
                 {/* MTCNN Metric */}
                 <div>
-                  <div className="flex justify-between text-xs font-mono mb-1">
-                    <span className="text-slate-300 flex items-center gap-1.5">
+                  <div className="flex justify-between text-xs font-mono mb-1.5">
+                    <span className="text-indigo-300 flex items-center gap-1.5 font-semibold">
                       <Layers className="w-3.5 h-3.5 text-indigo-400" />
                       MTCNN (70% weight)
                     </span>
-                    <span className="font-bold text-slate-100">
+                    <span className="font-bold text-indigo-200">
                       {(mtcnnScore * 100).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                  <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-indigo-950">
                     <div
-                      className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+                      className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full transition-all duration-300"
                       style={{ width: `${mtcnnScore * 100}%` }}
                     />
                   </div>
@@ -459,54 +461,54 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
 
                 {/* YuNet Metric */}
                 <div>
-                  <div className="flex justify-between text-xs font-mono mb-1">
-                    <span className="text-slate-300 flex items-center gap-1.5">
+                  <div className="flex justify-between text-xs font-mono mb-1.5">
+                    <span className="text-cyan-300 flex items-center gap-1.5 font-semibold">
                       <Layers className="w-3.5 h-3.5 text-cyan-400" />
                       YuNet (30% weight)
                     </span>
-                    <span className="font-bold text-slate-100">
+                    <span className="font-bold text-cyan-200">
                       {(yunetScore * 100).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                  <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-cyan-950">
                     <div
-                      className="bg-cyan-500 h-full rounded-full transition-all duration-300"
+                      className="bg-gradient-to-r from-cyan-400 to-teal-400 h-full rounded-full transition-all duration-300"
                       style={{ width: `${yunetScore * 100}%` }}
                     />
                   </div>
                 </div>
 
                 {/* Pose & Consensus Quick Stats */}
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-[11px] font-mono">
-                  <div className="bg-slate-950/80 p-2 rounded border border-slate-800 flex flex-col">
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <Compass className="w-3 h-3 text-emerald-400" /> Head Tilt
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+                  <div className="bg-gradient-to-b from-emerald-950/40 to-slate-950 p-2.5 rounded-lg border border-emerald-800/40 flex flex-col">
+                    <span className="text-emerald-400 flex items-center gap-1 font-semibold">
+                      <Compass className="w-3 h-3" /> Head Tilt
                     </span>
-                    <span className="text-slate-200 font-bold mt-0.5">
+                    <span className="text-emerald-100 font-bold mt-0.5 text-sm">
                       {tiltAngle.toFixed(1)}°
                     </span>
                   </div>
 
-                  <div className="bg-slate-950/80 p-2 rounded border border-slate-800 flex flex-col">
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-accent" /> Alignment
+                  <div className="bg-gradient-to-b from-purple-950/40 to-slate-950 p-2.5 rounded-lg border border-purple-800/40 flex flex-col">
+                    <span className="text-purple-400 flex items-center gap-1 font-semibold">
+                      <Sparkles className="w-3 h-3" /> Landmark
                     </span>
-                    <span className="text-emerald-400 font-bold mt-0.5">
+                    <span className="text-purple-100 font-bold mt-0.5 text-sm">
                       5-Pt Affine OK
                     </span>
                   </div>
                 </div>
 
                 {/* Live Identification Match */}
-                <div className="bg-slate-950/80 p-2.5 rounded border border-slate-800 flex items-center justify-between text-xs font-mono">
+                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex items-center justify-between text-xs font-mono">
                   <span className="text-slate-400">Gallery Match:</span>
                   {isMatch ? (
                     <span className="text-emerald-400 font-bold flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" /> {matchName} ({matchSimilarity}%)
+                      <ShieldCheck className="w-4 h-4" /> {matchName} ({matchSimilarity}%)
                     </span>
                   ) : (
                     <span className="text-slate-400 font-medium flex items-center gap-1">
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-400" /> UNKNOWN / UNENROLLED
+                      <ShieldAlert className="w-4 h-4 text-amber-400" /> UNKNOWN / UNENROLLED
                     </span>
                   )}
                 </div>
@@ -515,7 +517,7 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
               {/* Captured Shots Filmstrip */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-300">Captured Multi-Shot Reel</span>
+                  <span className="font-bold text-slate-200">Captured Multi-Shot Reel</span>
                   {capturedShots.length > 0 && (
                     <button
                       type="button"
@@ -523,7 +525,7 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
                         capturedShots.forEach((s) => URL.revokeObjectURL(s.previewUrl));
                         setCapturedShots([]);
                       }}
-                      className="text-red-400 hover:text-red-300 text-[11px] underline"
+                      className="text-rose-400 hover:text-rose-300 text-[11px] font-semibold underline"
                     >
                       Clear all
                     </button>
@@ -531,28 +533,28 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
                 </div>
 
                 {capturedShots.length === 0 ? (
-                  <div className="py-4 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg">
-                    Click <strong>Snap Shot</strong> to capture 1 to 5 face angles for centroid averaging.
+                  <div className="py-4 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-xl bg-slate-950/50">
+                    Click <strong>Snap Facial Shot</strong> to capture 1 to 5 face angles for centroid averaging.
                   </div>
                 ) : (
-                  <div className="flex gap-2 overflow-x-auto pb-1 max-h-24">
+                  <div className="flex gap-2.5 overflow-x-auto pb-1 max-h-24">
                     {capturedShots.map((shot, idx) => (
                       <div
                         key={shot.id}
-                        className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-slate-700 bg-slate-900 group"
+                        className="relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 border-indigo-500/60 bg-slate-900 shadow-md group"
                       >
                         <img
                           src={shot.previewUrl}
                           alt={`Shot ${idx + 1}`}
                           className="w-full h-full object-cover"
                         />
-                        <span className="absolute bottom-0.5 left-0.5 px-1 bg-black/80 rounded text-[9px] font-mono text-slate-300">
+                        <span className="absolute bottom-0.5 left-0.5 px-1.5 bg-black/85 rounded text-[9px] font-mono text-cyan-300 font-bold">
                           #{idx + 1}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleRemoveShot(shot.id)}
-                          className="absolute top-0.5 right-0.5 p-0.5 bg-red-900/90 hover:bg-red-800 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-0.5 right-0.5 p-1 bg-rose-900/90 hover:bg-rose-700 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                           title="Remove shot"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -565,8 +567,8 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
 
               {/* Identity Name Input */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-200">
-                  Subject Identity Name <span className="text-accent">*</span>
+                <label className="text-xs font-bold text-slate-200">
+                  Subject Identity Name <span className="text-cyan-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -574,21 +576,21 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
                   value={subjectName}
                   onChange={(e) => setSubjectName(e.target.value)}
                   disabled={isEnrolling}
-                  className="px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-md text-slate-100 placeholder-slate-500 focus:outline-none focus:border-accent font-sans"
+                  className="px-3.5 py-2.5 text-xs bg-slate-950 border border-slate-700/80 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 font-sans shadow-inner"
                 />
               </div>
 
               {/* Error message */}
               {errorMsg && (
-                <div className="p-2.5 rounded bg-red-950/80 border border-red-800 text-xs text-red-200 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <div className="p-3 rounded-xl bg-rose-950/90 border border-rose-600/70 text-xs text-rose-200 flex items-center gap-2 shadow-lg">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
               )}
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-3 border-t border-border">
+            <div className="flex items-center gap-2.5 pt-3 border-t border-border">
               <button
                 type="button"
                 onClick={() => {
@@ -596,7 +598,7 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
                   onClose();
                 }}
                 disabled={isEnrolling}
-                className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition-colors"
+                className="flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border border-slate-700 transition-colors"
               >
                 Cancel
               </button>
@@ -605,7 +607,7 @@ export const LiveCameraEnrollModal: React.FC<LiveCameraEnrollModalProps> = ({
                 type="button"
                 onClick={handleSaveToGallery}
                 disabled={isEnrolling || capturedShots.length === 0 || !subjectName.trim()}
-                className="flex-1 py-2 px-3 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white text-xs font-extrabold rounded-xl shadow-glow-emerald transition-all flex items-center justify-center gap-2"
               >
                 {isEnrolling ? (
                   <>

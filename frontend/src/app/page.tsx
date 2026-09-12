@@ -8,9 +8,9 @@ import {
   Activity,
   Cpu,
   Layers,
-  CheckCircle,
-  AlertCircle,
   Radio,
+  Sparkles,
+  Server,
 } from "lucide-react";
 import { LiveInspector } from "../components/LiveInspector";
 import { DualDetectorHUD } from "../components/DualDetectorHUD";
@@ -43,88 +43,100 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="min-h-screen flex flex-col p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto gap-6">
+    <main className="min-h-screen flex flex-col p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto gap-6 font-sans">
       {/* Top Enterprise Command Center Header */}
-      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-accent/15 border border-accent/30 flex items-center justify-center text-accent">
-            <Shield className="w-5 h-5" />
+      <header className="glass-panel rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-slate-700/60 shadow-xl">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-400 shadow-glow-cyan shrink-0">
+            <Shield className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold tracking-tight text-slate-100 uppercase">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-cyan-100 to-indigo-200 bg-clip-text text-transparent uppercase">
                 Nimbus Biometric Intelligence
               </h1>
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">
-                v1.0.0
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-950 to-indigo-950 border border-cyan-700/50 text-cyan-300">
+                ENTERPRISE v1.0
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Dual-Verification (MTCNN 70% + OpenCV YuNet 30%) Face Recognition Engine
+            <p className="text-xs text-slate-300/80 mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <span>Dual-Verification Engine:</span>
+              <span className="text-indigo-400 font-semibold font-mono">MTCNN 70%</span>
+              <span className="text-slate-500">+</span>
+              <span className="text-cyan-400 font-semibold font-mono">YuNet 30%</span>
+              <span className="text-slate-500">•</span>
+              <span className="text-emerald-400 font-semibold font-mono">Zero-DB Centroids</span>
             </p>
           </div>
         </div>
 
         {/* System Health & Hardware Badges */}
-        <div className="flex items-center gap-2 text-xs font-mono">
+        <div className="flex items-center gap-2 text-xs font-mono flex-wrap">
           <div
-            className={`px-3 py-1 rounded-full border flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-full border flex items-center gap-2 shadow-sm ${
               isOnline
-                ? "bg-emerald-950/60 border-emerald-800 text-emerald-300"
-                : "bg-red-950/60 border-red-800 text-red-300"
+                ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-glow-emerald"
+                : "bg-rose-950/80 border-rose-500/50 text-rose-300 shadow-glow-rose"
             }`}
           >
-            <Radio className={`w-3 h-3 ${isOnline ? "animate-pulse text-emerald-400" : "text-red-400"}`} />
-            <span>{isOnline ? "CORE ONLINE" : "BACKEND OFFLINE"}</span>
+            <Radio className={`w-3.5 h-3.5 ${isOnline ? "animate-pulse text-emerald-400" : "text-rose-400"}`} />
+            <span className="font-bold tracking-wider">{isOnline ? "CORE ONLINE" : "BACKEND OFFLINE"}</span>
           </div>
 
           {health && (
-            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400">
-              <span>DEV: {health.device.toUpperCase()}</span>
-              <span>•</span>
-              <span>VEC: {health.embedding_dim}D</span>
-              <span>•</span>
-              <span>ENROLLED: {health.enrolled_faces_count}</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="px-2.5 py-1 rounded-full bg-indigo-950/70 border border-indigo-700/60 text-indigo-300 flex items-center gap-1 text-[11px]">
+                <Cpu className="w-3 h-3 text-indigo-400" />
+                <span>{health.device.toUpperCase()}</span>
+              </div>
+              <div className="px-2.5 py-1 rounded-full bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 flex items-center gap-1 text-[11px]">
+                <Layers className="w-3 h-3 text-cyan-400" />
+                <span>{health.embedding_dim}D</span>
+              </div>
+              <div className="px-2.5 py-1 rounded-full bg-purple-950/70 border border-purple-700/60 text-purple-300 flex items-center gap-1 text-[11px]">
+                <Users className="w-3 h-3 text-purple-400" />
+                <span>{health.enrolled_faces_count} ENROLLED</span>
+              </div>
             </div>
           )}
         </div>
       </header>
 
-      {/* Navigation Tabs Bar */}
-      <nav className="flex border-b border-border gap-2">
+      {/* Navigation Tabs Bar with Rich Distinct Color Themes */}
+      <nav className="flex gap-2 p-1.5 bg-slate-950/80 rounded-xl border border-slate-800 backdrop-blur-md">
         <button
           onClick={() => setActiveTab("live")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
             activeTab === "live"
-              ? "border-accent text-accent bg-accent/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
+              ? "bg-gradient-to-r from-cyan-600/30 to-sky-600/20 text-cyan-300 border border-cyan-500/50 shadow-glow-cyan"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 border border-transparent"
           }`}
         >
-          <Eye className="w-4 h-4" />
+          <Eye className={`w-4 h-4 ${activeTab === "live" ? "text-cyan-400" : "text-slate-400"}`} />
           <span>Live HUD Inspector</span>
         </button>
 
         <button
           onClick={() => setActiveTab("gallery")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
             activeTab === "gallery"
-              ? "border-accent text-accent bg-accent/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
+              ? "bg-gradient-to-r from-indigo-600/30 to-violet-600/20 text-indigo-300 border border-indigo-500/50 shadow-glow-indigo"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 border border-transparent"
           }`}
         >
-          <Users className="w-4 h-4" />
+          <Users className={`w-4 h-4 ${activeTab === "gallery" ? "text-indigo-400" : "text-slate-400"}`} />
           <span>Gallery & Enrollment</span>
         </button>
 
         <button
           onClick={() => setActiveTab("analytics")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
             activeTab === "analytics"
-              ? "border-accent text-accent bg-accent/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
+              ? "bg-gradient-to-r from-amber-600/30 to-emerald-600/20 text-amber-300 border border-amber-500/50 shadow-glow-amber"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 border border-transparent"
           }`}
         >
-          <Activity className="w-4 h-4" />
+          <Activity className={`w-4 h-4 ${activeTab === "analytics" ? "text-amber-400" : "text-slate-400"}`} />
           <span>Biometric Analytics</span>
         </button>
       </nav>
@@ -157,16 +169,29 @@ export default function Home() {
       </section>
 
       {/* Footer System Status Bar */}
-      <footer className="mt-auto pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono text-slate-500 gap-2">
-        <div>NIMBUS FACE RECOGNITION • INCEPTION-RESNET-V1 • ZERO-DB ARCHITECTURE</div>
-        <div className="flex items-center gap-3">
-          <span>MTCNN: 70%</span>
-          <span>•</span>
-          <span>YUNET: 30%</span>
-          <span>•</span>
-          <span>WBF IOU: 0.45</span>
-          <span>•</span>
-          <span>TAU: {threshold.toFixed(2)}</span>
+      <footer className="mt-auto glass-panel rounded-lg p-3.5 border border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono text-slate-400 gap-2">
+        <div className="flex items-center gap-2 text-slate-300">
+          <Server className="w-3.5 h-3.5 text-cyan-400" />
+          <span>NIMBUS FACE RECOGNITION</span>
+          <span className="text-slate-600">•</span>
+          <span className="text-indigo-300">INCEPTION-RESNET-V1</span>
+          <span className="text-slate-600">•</span>
+          <span className="text-emerald-300">ZERO-DB CENTROIDS</span>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap text-[10px]">
+          <span className="px-2 py-0.5 rounded bg-indigo-950/70 border border-indigo-700/60 text-indigo-300 font-bold">
+            MTCNN: 70%
+          </span>
+          <span className="px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 font-bold">
+            YUNET: 30%
+          </span>
+          <span className="px-2 py-0.5 rounded bg-purple-950/70 border border-purple-700/60 text-purple-300 font-bold">
+            IOU: 0.45
+          </span>
+          <span className="px-2 py-0.5 rounded bg-amber-950/70 border border-amber-700/60 text-amber-300 font-bold">
+            TAU: {threshold.toFixed(2)}
+          </span>
         </div>
       </footer>
     </main>

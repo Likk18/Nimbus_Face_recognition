@@ -12,6 +12,9 @@ import {
   AlertCircle,
   RefreshCw,
   FolderOpen,
+  UserCheck,
+  Shield,
+  Layers,
 } from "lucide-react";
 import {
   fetchGallery,
@@ -138,50 +141,74 @@ export const GalleryManager: React.FC = () => {
     loadGallery();
   };
 
+  // Helper for colorful initial avatars
+  const getAvatarGradient = (name: string) => {
+    const gradients = [
+      "from-cyan-500 to-blue-600",
+      "from-indigo-500 to-purple-600",
+      "from-violet-500 to-fuchsia-600",
+      "from-emerald-500 to-teal-600",
+      "from-amber-500 to-orange-600",
+      "from-rose-500 to-pink-600",
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const idx = Math.abs(hash) % gradients.length;
+    return gradients[idx];
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Multi-Shot Enrollment Wizard */}
-        <div className="bg-surface border border-border rounded-lg p-5 flex flex-col gap-4">
-          <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-200 border-b border-border pb-3">
-            <UserPlus className="w-4 h-4 text-accent" />
-            <span>Multi-Shot Face Enrollment</span>
+        <div className="glass-panel rounded-xl p-5 flex flex-col gap-4 border border-slate-700/60 shadow-xl">
+          <div className="flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-slate-100 border-b border-border pb-3">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+              <UserPlus className="w-4 h-4" />
+            </div>
+            <span className="bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+              Face Enrollment Wizard
+            </span>
           </div>
 
           {/* Subject Name Input */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-slate-300">Subject Name / Identity</label>
+            <label className="text-xs font-semibold text-slate-200">
+              Subject Name / Identity <span className="text-indigo-400">*</span>
+            </label>
             <input
               type="text"
               placeholder="e.g. Alex Morgan"
               value={enrollName}
               onChange={(e) => setEnrollName(e.target.value)}
-              className="px-3 py-2 text-sm bg-slate-900 border border-slate-700 rounded-md text-slate-100 placeholder-slate-500 focus:outline-none focus:border-accent font-sans"
+              className="px-3.5 py-2.5 text-sm bg-slate-950/90 border border-slate-700/80 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-sans shadow-inner"
             />
           </div>
 
           {/* Camera Pop-up & File Upload Buttons */}
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5">
               <button
                 type="button"
                 onClick={() => setIsCameraModalOpen(true)}
-                className="w-full py-2.5 px-3 text-xs font-bold bg-accent/20 hover:bg-accent/30 text-accent border border-accent/40 rounded-md flex items-center justify-center gap-2 transition-all shadow-sm active:scale-[0.99]"
+                className="w-full py-3 px-4 text-xs font-bold bg-gradient-to-r from-cyan-600 via-sky-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-lg flex items-center justify-center gap-2 shadow-glow-cyan transition-all active:scale-[0.99]"
               >
                 <Camera className="w-4 h-4" /> Open Camera (Live Biometric HUD)
               </button>
 
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs font-medium text-slate-400">
-                  Uploaded Files: <strong className="text-slate-100">{capturedShots.length}</strong>
+                  Manual Upload: <strong className="text-indigo-300 font-mono">{capturedShots.length}</strong>
                 </span>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => fileUploadRef.current?.click()}
-                    className="px-2.5 py-1 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 flex items-center gap-1 transition-colors"
+                    className="px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md border border-slate-700 flex items-center gap-1.5 transition-colors shadow-sm"
                   >
-                    <FolderOpen className="w-3.5 h-3.5 text-accent" /> Select Files
+                    <FolderOpen className="w-3.5 h-3.5 text-cyan-400" /> Select Files
                   </button>
                   <input
                     ref={fileUploadRef}
@@ -197,14 +224,15 @@ export const GalleryManager: React.FC = () => {
 
             {/* Shots preview badges */}
             {capturedShots.length > 0 && (
-              <div className="p-2.5 bg-slate-900/80 rounded border border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-300 font-mono">
+              <div className="p-3 bg-slate-950/80 rounded-lg border border-indigo-800/40 flex items-center justify-between text-xs">
+                <span className="text-indigo-200 font-mono flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-indigo-400" />
                   {capturedShots.length} file(s) queued for Centroid
                 </span>
                 <button
                   type="button"
                   onClick={() => setCapturedShots([])}
-                  className="text-red-400 hover:text-red-300 text-xs underline"
+                  className="text-rose-400 hover:text-rose-300 text-xs font-semibold underline"
                 >
                   Clear
                 </button>
@@ -217,7 +245,7 @@ export const GalleryManager: React.FC = () => {
             type="button"
             onClick={handleEnrollSubmit}
             disabled={isLoading || capturedShots.length === 0 || !enrollName.trim()}
-            className="w-full py-2 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-medium text-sm rounded-md transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-all shadow-md flex items-center justify-center gap-2"
           >
             <UserPlus className="w-4 h-4" /> Enroll from Files
           </button>
@@ -225,16 +253,16 @@ export const GalleryManager: React.FC = () => {
           {/* Feedback Alert */}
           {feedback && (
             <div
-              className={`p-3 rounded text-xs flex items-center gap-2 border ${
+              className={`p-3 rounded-lg text-xs flex items-center gap-2 border shadow-lg ${
                 feedback.type === "success"
-                  ? "bg-emerald-950/80 border-emerald-800 text-emerald-200"
-                  : "bg-red-950/80 border-red-800 text-red-200"
+                  ? "bg-emerald-950/90 border-emerald-600/70 text-emerald-200 shadow-glow-emerald"
+                  : "bg-rose-950/90 border-rose-600/70 text-rose-200 shadow-glow-rose"
               }`}
             >
               {feedback.type === "success" ? (
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
               ) : (
-                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               )}
               <span>{feedback.msg}</span>
             </div>
@@ -242,33 +270,40 @@ export const GalleryManager: React.FC = () => {
         </div>
 
         {/* Right Column (2 spans): Enrolled Gallery Cards & Zero-DB Tools */}
-        <div className="lg:col-span-2 bg-surface border border-border rounded-lg p-5 flex flex-col gap-4">
+        <div className="lg:col-span-2 glass-panel rounded-xl p-5 flex flex-col gap-4 border border-slate-700/60 shadow-xl">
           {/* Header with Import/Export Controls */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-3">
             <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-200">
-              <Users className="w-4 h-4 text-accent" />
-              <span>Enrolled Gallery ({profiles.length} Profiles)</span>
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                <Users className="w-4 h-4" />
+              </div>
+              <span className="bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
+                Enrolled Gallery Profiles
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-700/60 text-cyan-300 text-xs font-mono font-bold">
+                {profiles.length}
+              </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={loadGallery}
-                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-colors"
+                className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors"
                 title="Refresh Gallery"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={handleExport}
-                className="px-2.5 py-1 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 text-xs font-bold bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 rounded-lg border border-amber-600/50 flex items-center gap-1.5 transition-colors shadow-sm"
               >
-                <Download className="w-3.5 h-3.5" /> Export JSON
+                <Download className="w-3.5 h-3.5 text-amber-400" /> Export JSON
               </button>
               <button
                 onClick={() => importFileRef.current?.click()}
-                className="px-2.5 py-1 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 text-xs font-bold bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 rounded-lg border border-cyan-600/50 flex items-center gap-1.5 transition-colors shadow-sm"
               >
-                <Upload className="w-3.5 h-3.5" /> Import JSON
+                <Upload className="w-3.5 h-3.5 text-cyan-400" /> Import JSON
               </button>
               <input
                 ref={importFileRef}
@@ -282,33 +317,46 @@ export const GalleryManager: React.FC = () => {
 
           {/* Profile Cards Grid */}
           {isLoading ? (
-            <div className="flex items-center justify-center py-12 text-slate-500 text-xs">
-              <RefreshCw className="w-4 h-4 animate-spin mr-2" /> Loading gallery profiles...
+            <div className="flex items-center justify-center py-16 text-slate-400 text-xs">
+              <RefreshCw className="w-5 h-5 animate-spin mr-2 text-cyan-400" /> Loading biometric gallery...
             </div>
           ) : profiles.length === 0 ? (
-            <div className="text-center py-12 text-slate-500 text-xs border border-dashed border-slate-800 rounded">
-              No enrolled face profiles in the gallery. Use the enrollment wizard on the left to register identities.
+            <div className="text-center py-16 text-slate-400 text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/40">
+              No enrolled face profiles in the gallery. Use the Live Camera or select images on the left.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[460px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-h-[460px] overflow-y-auto pr-1">
               {profiles.map((p) => (
                 <div
                   key={p.name}
-                  className="bg-slate-900/80 border border-slate-800 rounded-lg p-3.5 flex items-center justify-between hover:border-slate-700 transition-colors"
+                  className="bg-gradient-to-r from-slate-900/90 to-slate-950/90 border border-slate-800/80 hover:border-indigo-500/50 rounded-xl p-3.5 flex items-center justify-between transition-all group shadow-sm"
                 >
-                  <div className="flex flex-col gap-0.5">
-                    <div className="font-bold text-sm text-slate-100">{p.name}</div>
-                    <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
-                      <span>{p.num_shots} shot(s)</span>
-                      <span>•</span>
-                      <span>{new Date(p.created_at).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-3">
+                    {/* Vibrant Initial Avatar */}
+                    <div
+                      className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatarGradient(
+                        p.name
+                      )} flex items-center justify-center font-bold text-white text-sm shadow-md shrink-0`}
+                    >
+                      {p.name.charAt(0).toUpperCase()}
+                    </div>
+
+                    <div className="flex flex-col gap-0.5">
+                      <div className="font-bold text-sm text-slate-100 group-hover:text-cyan-200 transition-colors">
+                        {p.name}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
+                        <span className="text-indigo-300 font-semibold">{p.num_shots} centroid shot(s)</span>
+                        <span className="text-slate-600">•</span>
+                        <span>{new Date(p.created_at).toLocaleDateString()}</span>
+                      </div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => handleDelete(p.name)}
-                    className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded transition-colors"
-                    title="Delete subject"
+                    className="p-2 text-slate-500 hover:text-rose-300 hover:bg-rose-950/60 rounded-lg transition-colors"
+                    title={`Delete ${p.name}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

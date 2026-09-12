@@ -1,6 +1,6 @@
 {
   "total_test_samples": 25,
-  "enrolled_gallery_size": 4,
+  "enrolled_gallery_size": 5,
   "optimal_threshold_eer": 0.9,
   "equal_error_rate": 0.6333,
   "roc_auc": 0.3833,
